@@ -3,7 +3,7 @@
 For each policy in the company retention playbook, generates:
     1. One concise, factual summary (for direct semantic matching)
     2. Three hypothetical questions that a user or agent might ask
-       (for query-style matching — covers different phrasings)
+       (for query-style matching - covers different phrasings)
 
 These child documents are embedded separately in ChromaDB and linked
 to the parent policy via metadata, enabling true multi-vector retrieval.
@@ -18,9 +18,9 @@ CHUNKER_SYSTEM_PROMPT = """You are a document processing assistant. Your task is
 
 For the given policy, produce exactly:
 
-1. A **summary**: One concise paragraph (2-4 sentences) that accurately captures ALL the key rules, thresholds, and conditions in the policy. This must be factually complete — no details omitted.
+1. A **summary**: One concise paragraph (2-4 sentences) that accurately captures ALL the key rules, thresholds, and conditions in the policy. This must be factually complete - no details omitted.
 
-2. Three **hypothetical questions**: Questions that a customer retention agent might ask that THIS specific policy would answer. Make the questions diverse — different phrasings, different angles. For example:
+2. Three **hypothetical questions**: Questions that a customer retention agent might ask that THIS specific policy would answer. Make the questions diverse - different phrasings, different angles. For example:
    - One question from the perspective of "can I do X?"
    - One question about specific thresholds or limits
    - One question about eligibility conditions

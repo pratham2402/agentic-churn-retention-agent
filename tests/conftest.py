@@ -1,4 +1,4 @@
-"""Pytest configuration — load env, provide shared fixtures."""
+"""Pytest configuration - load env, provide shared fixtures."""
 
 import os
 import json

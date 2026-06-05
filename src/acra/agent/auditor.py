@@ -1,20 +1,20 @@
-"""Node 2: The Financial Auditor — programmatic policy enforcement.
+"""Node 2: The Financial Auditor - programmatic policy enforcement.
 
 This is the CRITIC in the actor-critic loop. It performs HARD-CODED,
 zero-LLM compliance checks against every company policy. No LLM
-reasoning is used for rule enforcement — all checks are deterministic
+reasoning is used for rule enforcement - all checks are deterministic
 Python functions that do exact math.
 
 Policy coverage:
-    POL-001  — Tenure-based maximum discount limits
-    POL-002  — Lifetime value floor protection
-    POL-003  — Free month eligibility and limits
-    POL-004  — Plan downgrade preference
-    POL-005  — Feature gap handling
-    POL-006  — High-value customer protocol
-    POL-007  — Competitor price match protocol
-    POL-HV-001  — Executive reach-out trigger
-    POL-RISK-001 — Serial canceller detection
+    POL-001  - Tenure-based maximum discount limits
+    POL-002  - Lifetime value floor protection
+    POL-003  - Free month eligibility and limits
+    POL-004  - Plan downgrade preference
+    POL-005  - Feature gap handling
+    POL-006  - High-value customer protocol
+    POL-007  - Competitor price match protocol
+    POL-HV-001  - Executive reach-out trigger
+    POL-RISK-001 - Serial canceller detection
 """
 
 import json
@@ -171,7 +171,7 @@ def check_pol_004_plan_downgrade(
     if not is_cost_concern:
         return True, "", checked
 
-    # Can't downgrade from Starter — lowest tier
+    # Can't downgrade from Starter - lowest tier
     if plan_name.lower() in ("starter", "basic"):
         return True, "", checked
 
@@ -179,7 +179,7 @@ def check_pol_004_plan_downgrade(
         return True, "", checked
 
     # Cost concern, not on lowest tier, didn't propose downgrade
-    # This is a SOFT violation — flag it but don't block
+    # This is a SOFT violation - flag it but don't block
     if plan_name.lower() == "enterprise" and offer_type != "plan_downgrade":
         return False, (
             f"POL-004 WARNING: Customer on Enterprise plan cites cost concerns. "
@@ -265,7 +265,7 @@ def check_pol_006_high_value_protocol(
     - LTV > $10k or monthly > $500 → classified as high-value
     - High-value customers may receive premium treatment
     - BUT tenure-based discount limits STILL APPLY (enforced by POL-001)
-    - This check is informational — validates that premium treatment is considered
+    - This check is informational - validates that premium treatment is considered
     """
     is_high_value = ltv_usd > 10000 or monthly_cost_usd > 500
 
@@ -280,7 +280,7 @@ def check_pol_006_high_value_protocol(
     if not is_high_value:
         return True, "", checked
 
-    # High-value customer — this is informational
+    # High-value customer - this is informational
     # The hard limits are enforced by POL-001
     return True, "", checked
 
@@ -330,7 +330,7 @@ def check_pol_hv_001_executive_reachout(
 ) -> tuple[bool, str, dict]:
     """POL-HV-001: Executive reach-out trigger.
 
-    Informational check — LTV > $25k triggers executive engagement workflow.
+    Informational check - LTV > $25k triggers executive engagement workflow.
     This is not a violation, but a notification.
     """
     checked = {"ltv_usd": ltv_usd, "triggers_executive_reachout": ltv_usd > 25000}
@@ -360,7 +360,7 @@ def check_pol_risk_001_serial_canceller(
     # if the discount is above the serial canceller threshold
     checked = {"discount_percent": discount_percent, "serial_canceller_max": 10}
 
-    # This is a soft check — we can't verify without history data
+    # This is a soft check - we can't verify without history data
     return True, "", checked
 
 
@@ -374,7 +374,7 @@ def run_all_policy_checks(
 ) -> AuditResult:
     """Execute every policy check against a proposed offer.
 
-    Each check is a pure Python function — no LLM calls, no API calls.
+    Each check is a pure Python function - no LLM calls, no API calls.
     All math is deterministic and auditable.
 
     Args:
@@ -434,7 +434,7 @@ def run_all_policy_checks(
     if hard_violations:
         violation_ids = [pid for pid, _ in hard_violations]
         feedback_lines = [
-            f"AUDIT REJECTED — {len(hard_violations)} policy violation(s) found:\n"
+            f"AUDIT REJECTED - {len(hard_violations)} policy violation(s) found:\n"
         ]
         for pid, detail in hard_violations:
             feedback_lines.append(f"  [{pid}] {detail}")
@@ -536,7 +536,7 @@ def parse_offer_from_messages(messages: list) -> RetentionOffer | None:
 
         content = msg.content
         if isinstance(content, list):
-            # Multimodal content — extract text parts
+            # Multimodal content - extract text parts
             text_parts = [p.get("text", "") for p in content if isinstance(p, dict)]
             content = " ".join(text_parts)
 

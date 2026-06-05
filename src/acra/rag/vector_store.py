@@ -1,12 +1,12 @@
 """ChromaDB vector store setup with multi-collection architecture.
 
 Collections:
-    customer_profiles  — exact ID lookup for customer data (key-value)
-    policy_children    — multi-vector embeddings of policy summaries and
+    customer_profiles  - exact ID lookup for customer data (key-value)
+    policy_children    - multi-vector embeddings of policy summaries and
                           hypothetical questions (dense vector search)
 
 Parent Document Store:
-    InMemoryByteStore (pickle-persisted) — stores full policy text,
+    InMemoryByteStore (pickle-persisted) - stores full policy text,
     keyed by policy_id. Retrieved after child vector match.
 """
 

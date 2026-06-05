@@ -1,4 +1,4 @@
-"""Node 1: The Retention Strategist — a fully autonomous tool-calling agent.
+"""Node 1: The Retention Strategist - a fully autonomous tool-calling agent.
 
 This agent follows the ReAct (Reasoning + Acting) pattern:
     1. Receives the cancellation request and customer context
@@ -34,7 +34,7 @@ SYSTEM_PROMPT = """You are a senior Customer Retention Strategist at a SaaS comp
 
 ## Important Guidelines
 
-- Always search policies BEFORE proposing — never guess at limits
+- Always search policies BEFORE proposing - never guess at limits
 - Respect tenure-based discount limits EXACTLY as stated in policies
 - Prefer plan downgrades over discounts for cost-concerned customers (POL-004)
 - For feature-gap cancellations, offer tier trials, not discounts (POL-005)

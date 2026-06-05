@@ -144,7 +144,7 @@ class MultiVectorPolicyRetriever:
         """Retrieve a customer profile by exact ID from ChromaDB.
 
         This is a key-value lookup, not a vector search. Customer profiles
-        are structured entities — exact match is the correct access pattern.
+        are structured entities - exact match is the correct access pattern.
         """
         result = self._profile_collection.get(
             ids=[f"profile-{customer_id}"],

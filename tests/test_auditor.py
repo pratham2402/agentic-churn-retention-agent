@@ -1,7 +1,7 @@
 """Tests for the programmatic Auditor policy checks.
 
 These verify that every policy check function correctly enforces
-the hard-coded rules with exact math. Zero LLM dependency — all
+the hard-coded rules with exact math. Zero LLM dependency - all
 checks are deterministic Python functions.
 """
 
@@ -168,7 +168,7 @@ class TestPOL005:
 
     def test_compound_offer_discount_plus_tier_trial_passes(self):
         """A discount with tier trial mentioned in justification should pass
-        even for feature-gap cancellations — it addresses both concerns."""
+        even for feature-gap cancellations - it addresses both concerns."""
         passed, detail, _ = check_pol_005_feature_gap(
             cancellation_reason="Missing feature X that competitor has",
             offer_type="discount",

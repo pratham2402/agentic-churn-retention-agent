@@ -140,11 +140,11 @@ def build_workflow() -> StateGraph:
     """Build the ACRA retention workflow as a StateGraph.
 
     Nodes:
-        retrieval   — loads customer profile into state
-        strategist  — autonomous tool-calling ReAct agent
-        tools       — ToolNode executing Strategist's tool calls
-        auditor     — programmatic policy enforcement (9 checks)
-        finalize    — assembles RetentionPayload
+        retrieval   - loads customer profile into state
+        strategist  - autonomous tool-calling ReAct agent
+        tools       - ToolNode executing Strategist's tool calls
+        auditor     - programmatic policy enforcement (9 checks)
+        finalize    - assembles RetentionPayload
 
     Edges:
         START → retrieval → strategist

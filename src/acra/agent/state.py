@@ -14,7 +14,7 @@ class RetentionState(MessagesState):
     """State that flows through the ACRA retention agent graph.
 
     Inherits from MessagesState:
-        messages: list[AnyMessage]  — full conversation history with
+        messages: list[AnyMessage]  - full conversation history with
             automatic add_messages reducer for append-only semantics.
 
     Extended fields for workflow orchestration:

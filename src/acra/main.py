@@ -130,7 +130,7 @@ def print_result(result: dict, scenario_desc: str = "") -> None:
 def interactive_mode() -> None:
     """Run the ACRA agent in interactive CLI mode."""
     print("\n" + "=" * 60)
-    print("  ACRA — Agentic Customer Churn & Retention Agent")
+    print("  ACRA - Agentic Customer Churn & Retention Agent")
     print("  Multi-Vector RAG + ReAct Strategist + Programmatic Auditor")
     print("=" * 60)
     print("\nAvailable customer IDs:")
@@ -162,13 +162,13 @@ def interactive_mode() -> None:
 def demo_mode() -> None:
     """Run all demo scenarios to showcase the agent's capabilities."""
     print("\n" + "=" * 60)
-    print("  ACRA Demo — Running All Sample Scenarios")
+    print("  ACRA Demo - Running All Sample Scenarios")
     print("  Multi-Vector RAG + ReAct Strategist + Programmatic Auditor")
     print("=" * 60)
 
     for i, scenario in enumerate(DEMO_SCENARIOS, 1):
         print(f"\n[{i}/{len(DEMO_SCENARIOS)}] Processing: "
-              f"{scenario['customer_id']} — {scenario['description']}")
+              f"{scenario['customer_id']} - {scenario['description']}")
         result = run_retention_flow(
             customer_id=scenario["customer_id"],
             cancellation_reason=scenario["reason"],
@@ -180,7 +180,7 @@ def demo_mode() -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="ACRA — Agentic Customer Churn & Retention Agent",
+        description="ACRA - Agentic Customer Churn & Retention Agent",
     )
     parser.add_argument(
         "--customer", "-c",

@@ -4,7 +4,7 @@ Provides two interfaces:
     1. ChromaDB-native: `get_embedding_function()` → ChromaDB EmbeddingFunction
     2. LangChain-compatible: `get_langchain_embeddings()` → LCEL Embeddings
 
-Uses all-MiniLM-L6-v2 — a 384-dimensional model that runs entirely
+Uses all-MiniLM-L6-v2 - a 384-dimensional model that runs entirely
 on CPU with no API calls.
 """
 

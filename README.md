@@ -1,69 +1,10 @@
-# ACRA — Agentic Customer Churn & Retention Agent
+# ACRA - Agentic Customer Churn & Retention Agent
 
 An autonomous multi-agent retention system that intercepts SaaS subscription cancellations using LangGraph-based ReAct agents with true multi-vector RAG over ChromaDB.
 
 ## Architecture
 
-```
-                   Customer Cancellation
-                           │
-                           ▼
-              ┌─────────────────────────┐
-              │  Multi-Vector RAG        │
-              │  ┌─────────────────────┐ │
-              │  │ Policy Children     │ │  ← ChromaDB (36 child vectors)
-              │  │ (summaries + Q&A)   │ │     embedding search
-              │  └────────┬───────────┘ │
-              │           │ parent_id   │
-              │  ┌────────▼───────────┐ │
-              │  │ Parent Policy Store │ │  ← pickle-persisted byte store
-              │  │ (full policy text)  │ │     returns full documents
-              │  └────────────────────┘ │
-              │                         │
-              │  Customer Profiles      │  ← ChromaDB (exact ID lookup)
-              └────────────┬────────────┘
-                           │
-                           ▼
-              ┌─────────────────────────┐
-              │  Strategist Agent        │  ← ReAct (Reasoning + Acting)
-              │  ┌─────────────────────┐ │
-              │  │ • get_customer_     │ │     Tool calls are autonomous —
-              │  │   profile(id)       │ │     the agent decides when to
-              │  │ • search_retention_ │ │     gather context and when to
-              │  │   policies(query)   │ │     propose an offer
-              │  └─────────────────────┘ │
-              │  Output: RetentionOffer  │
-              └────────────┬────────────┘
-                           │
-                           ▼
-              ┌─────────────────────────┐
-              │  Auditor (Programmatic)  │  ← Zero-LLM guardrail
-              │  ┌─────────────────────┐ │
-              │  │ POL-001: tenure caps│ │     9 policy checks — hard-coded
-              │  │ POL-002: LTV floor  │ │     Python math, not LLM reasoning
-              │  │ POL-003: free months│ │
-              │  │ POL-004: downgrades │ │
-              │  │ POL-005: feature gap│ │
-              │  │ POL-006: high-value │ │
-              │  │ POL-007: competitor │ │
-              │  │ POL-HV-001: exec    │ │
-              │  │ POL-RISK-001: fraud │ │
-              │  └─────────────────────┘ │
-              │  Output: AuditResult     │
-              └────────────┬────────────┘
-                           │
-                    ┌──────┴──────┐
-                    │             │
-                 APPROVED      REJECTED
-                    │         (under max 3)
-                    │             │
-                    ▼             ▼
-              ┌──────────┐  ┌──────────────┐
-              │ Finalize  │  │ Strategist    │  ← SystemMessage feedback
-              │ JSON +    │  │ (retry with   │     drives self-correction
-              │ Email     │  │  violations)  │
-              └──────────┘  └──────────────┘
-```
+![ACRA Architecture](docs/acra_architecture.png)
 
 ## Tech Stack
 
@@ -159,15 +100,15 @@ python -m acra.main --customer CUST-001 --reason "Too expensive" --output result
 
 ### Multi-Vector RAG Retrieval
 
-Each of the 9 company policies is decomposed into 4 child documents (1 factual summary + 3 hypothetical questions) by an LLM. These 36 children are embedded in ChromaDB — each with its own vector. The full parent policy text is stored in a pickle-persisted byte store.
+Each of the 9 company policies is decomposed into 4 child documents (1 factual summary + 3 hypothetical questions) by an LLM. These 36 children are embedded in ChromaDB - each with its own vector. The full parent policy text is stored in a pickle-persisted byte store.
 
 At query time, the user's query is embedded and matched against child vectors. Matching children reveal their parent `policy_id`, and the full parent text is fetched from the byte store with deduplication. This gives the agent rich, complete policy context while keeping retrieval precision high through targeted child embeddings.
 
 ### Strategist Agent (ReAct)
 
 The Strategist is a fully autonomous tool-calling agent. It has access to two tools:
-- `get_customer_profile(customer_id)` — retrieves the full account profile
-- `search_retention_policies(query)` — performs multi-vector RAG search
+- `get_customer_profile(customer_id)` - retrieves the full account profile
+- `search_retention_policies(query)` - performs multi-vector RAG search
 
 The agent follows the ReAct (Reasoning + Acting) pattern: it decides *when* to call tools, *which* tools to call, and *when* it has enough context to propose an offer. The LangGraph graph routes between the Strategist and a ToolNode until the agent produces a final response (no more tool calls).
 
@@ -221,7 +162,7 @@ When the Auditor finds violations, it appends a `SystemMessage` with the specifi
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEEPSEEK_API_KEY` | — | DeepSeek API key (required) |
+| `DEEPSEEK_API_KEY` | - | DeepSeek API key (required) |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | DeepSeek API endpoint |
 | `DEEPSEEK_MODEL` | `deepseek-chat` | Model name |
 | `CHROMA_PERSIST_DIR` | `./chroma_data` | ChromaDB storage path |

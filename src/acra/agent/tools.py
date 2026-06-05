@@ -11,7 +11,7 @@ descriptions that guide the agent's decision-making.
 from langchain_core.tools import tool
 from acra.rag.retriever import MultiVectorPolicyRetriever
 
-# Module-level retriever instance — created once and reused.
+# Module-level retriever instance - created once and reused.
 # The retriever manages its own ChromaDB connections internally.
 _retriever: MultiVectorPolicyRetriever | None = None
 

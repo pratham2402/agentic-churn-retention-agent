@@ -9,7 +9,7 @@ Multi-vector seeding process:
        (each child gets its own embedding vector)
     3. Store full parent policy text in the pickle-persisted byte store
     4. Store customer profiles in the customer_profiles collection
-       (exact ID lookup — not vector search)
+       (exact ID lookup - not vector search)
 """
 
 import json

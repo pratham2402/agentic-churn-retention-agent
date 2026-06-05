@@ -1,4 +1,4 @@
-"""Tests for the Retention Strategist agent — tool binding and node creation."""
+"""Tests for the Retention Strategist agent - tool binding and node creation."""
 
 import pytest
 from unittest.mock import MagicMock, patch
