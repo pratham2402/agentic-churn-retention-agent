@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "acra"
-version = "1.0.0"
-description = "Agentic Customer Churn & Retention Agent - An AI-powered retention system using LangGraph and ChromaDB"
+version = "2.0.0"
+description = "Agentic Customer Churn & Retention Agent — Multi-vector RAG with autonomous ReAct agents and programmatic policy enforcement"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
 authors = [
     {name = "ACRA Team"}
 ]
-keywords = ["agentic-ai", "langgraph", "chromadb", "rag", "customer-retention", "llm"]
+keywords = ["agentic-ai", "langgraph", "chromadb", "multi-vector-rag", "react-agent", "customer-retention", "llm"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
     "langgraph>=1.0.0",
     "langchain>=1.0.0",
+    "langchain-core>=0.3.0",
     "langchain-openai>=1.0.0",
     "langchain-chroma>=0.2.0",
     "chromadb>=1.0.0",

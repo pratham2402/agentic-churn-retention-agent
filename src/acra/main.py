@@ -5,6 +5,8 @@ Usage:
     acra --customer CUST-001        Run retention flow for a specific customer
     acra --customer CUST-001 --reason "Too expensive"
     acra --demo                     Run all sample scenarios
+    acra --seed                     Seed the ChromaDB database
+    acra --seed --demo              Seed and run all demos
 """
 
 import argparse
@@ -50,22 +52,25 @@ DEMO_SCENARIOS = [
 
 
 def run_retention_flow(customer_id: str, cancellation_reason: str) -> dict:
-    """Execute the full retention agent workflow for a single customer."""
+    """Execute the full agentic retention workflow for a single customer.
+
+    The graph manages the entire flow: retrieval → Strategist agent
+    (with ReAct tool calling) → Auditor (programmatic checks) → finalize.
+    The Strategist autonomously decides which tools to call and when.
+    """
     app = compile_graph()
 
     initial_state: RetentionState = {
+        "messages": [],
         "customer_id": customer_id,
-        "customer_name": "",
-        "customer_email": "",
         "cancellation_reason": cancellation_reason,
         "customer_profile": {},
-        "playbook_policies": [],
         "proposed_offer": {},
         "audit_approved": False,
         "audit_feedback": "",
         "iteration_count": 0,
         "final_email": "",
-        "final_json": {},
+        "final_result": {},
     }
 
     result = app.invoke(initial_state)
@@ -83,42 +88,56 @@ def print_result(result: dict, scenario_desc: str = "") -> None:
 
     profile = result.get("customer_profile", {})
     offer = result.get("proposed_offer", {})
+    final = result.get("final_result", {})
 
-    print(f"\nCustomer: {profile.get('name', 'N/A')} ({profile.get('customer_id', 'N/A')})")
+    print(f"\nCustomer: {profile.get('name', 'N/A')} "
+          f"({profile.get('customer_id', 'N/A')})")
     print(f"Plan: {profile.get('plan_name', 'N/A')} | "
           f"Tenure: {profile.get('tenure_months', 0)} months | "
-          f"LTV: ${profile.get('lifetime_value_usd', 0):.2f}")
+          f"LTV: ${profile.get('lifetime_value_usd', 0):,.2f}")
 
     print(f"\nCancellation Reason: {result.get('cancellation_reason', 'N/A')}")
 
     print(f"\n--- Proposed Offer ---")
-    print(f"Type:        {offer.get('offer_type', 'N/A')}")
-    print(f"Discount:    {offer.get('discount_percent', 0)}%")
-    print(f"Duration:    {offer.get('duration_months', 0)} months")
+    print(f"Type:          {offer.get('offer_type', 'N/A')}")
+    print(f"Discount:      {offer.get('discount_percent', 0)}%")
+    print(f"Duration:      {offer.get('duration_months', 0)} months")
     print(f"Justification: {offer.get('justification', 'N/A')}")
+
+    # Show agent reasoning if available
+    reasoning = offer.get('reasoning', '')
+    if reasoning:
+        print(f"\n--- Agent Reasoning ---")
+        print(reasoning)
 
     print(f"\n--- Audit Result ---")
     status = "APPROVED" if result.get("audit_approved") else "REJECTED"
-    print(f"Status:   {status}")
-    print(f"Feedback: {result.get('audit_feedback', 'N/A')}")
-    print(f"Iterations: {result.get('iteration_count', 0) + 1}")
+    print(f"Status:     {status}")
+    print(f"Feedback:   {result.get('audit_feedback', 'N/A')}")
+    retries = result.get('iteration_count', 0)
+    print(f"Retries:     {retries} ({'approved on first attempt' if retries == 0 else f'approved after {retries} retr' + ('y' if retries == 1 else 'ies')})")
 
-    print(f"\n--- Email Draft ---")
-    print(result.get("final_email", offer.get("email_draft", "N/A")))
+    print(f"\n--- Final Email ---")
+    email = result.get("final_email", offer.get("email_draft", "N/A"))
+    print(email)
 
     print(f"\n--- DB Payload (JSON) ---")
-    print(json.dumps(result.get("final_json", {}), indent=2))
+    display = final if final else offer
+    print(json.dumps(display, indent=2))
     print(f"\n{'='*70}\n")
 
 
 def interactive_mode() -> None:
     """Run the ACRA agent in interactive CLI mode."""
     print("\n" + "=" * 60)
-    print("  ACRA - Agentic Customer Churn & Retention Agent")
+    print("  ACRA — Agentic Customer Churn & Retention Agent")
+    print("  Multi-Vector RAG + ReAct Strategist + Programmatic Auditor")
     print("=" * 60)
     print("\nAvailable customer IDs:")
     for p in CUSTOMER_PROFILES:
-        print(f"  {p['customer_id']} - {p['name']} ({p['plan_name']}, {p['tenure_months']}mo)")
+        print(f"  {p['customer_id']} - {p['name']} "
+              f"({p['plan_name']}, {p['tenure_months']}mo, "
+              f"${p['lifetime_value_usd']:,.0f} LTV)")
 
     customer_id = input("\nEnter customer ID: ").strip()
     if not customer_id:
@@ -128,14 +147,14 @@ def interactive_mode() -> None:
     valid_ids = {p["customer_id"] for p in CUSTOMER_PROFILES}
     if customer_id not in valid_ids:
         print(f"Unknown customer ID: {customer_id}")
-        print(f"Valid IDs: {', '.join(valid_ids)}")
+        print(f"Valid IDs: {', '.join(sorted(valid_ids))}")
         return
 
     reason = input("Cancellation reason: ").strip()
     if not reason:
         reason = "General dissatisfaction"
 
-    print("\nRunning retention flow...")
+    print("\nRunning retention flow (agent is reasoning with tools)...")
     result = run_retention_flow(customer_id, reason)
     print_result(result)
 
@@ -143,11 +162,13 @@ def interactive_mode() -> None:
 def demo_mode() -> None:
     """Run all demo scenarios to showcase the agent's capabilities."""
     print("\n" + "=" * 60)
-    print("  ACRA Demo - Running All Sample Scenarios")
+    print("  ACRA Demo — Running All Sample Scenarios")
+    print("  Multi-Vector RAG + ReAct Strategist + Programmatic Auditor")
     print("=" * 60)
 
     for i, scenario in enumerate(DEMO_SCENARIOS, 1):
-        print(f"\n[{i}/{len(DEMO_SCENARIOS)}] Processing...")
+        print(f"\n[{i}/{len(DEMO_SCENARIOS)}] Processing: "
+              f"{scenario['customer_id']} — {scenario['description']}")
         result = run_retention_flow(
             customer_id=scenario["customer_id"],
             cancellation_reason=scenario["reason"],
@@ -159,7 +180,7 @@ def demo_mode() -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="ACRA - Agentic Customer Churn & Retention Agent",
+        description="ACRA — Agentic Customer Churn & Retention Agent",
     )
     parser.add_argument(
         "--customer", "-c",
@@ -206,7 +227,7 @@ def main():
         print_result(result)
         if args.output:
             with open(args.output, "w") as f:
-                json.dump(result.get("final_json", {}), f, indent=2)
+                json.dump(result.get("final_result", {}), f, indent=2)
             print(f"JSON output written to {args.output}")
     else:
         interactive_mode()
