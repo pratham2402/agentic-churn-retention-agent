@@ -1,94 +1,128 @@
-"""Tests for the Retention Strategist agent node."""
+"""Tests for the Retention Strategist agent — tool binding and node creation."""
 
 import pytest
 from unittest.mock import MagicMock, patch
 
-from acra.agent.strategist import build_strategist_prompt, create_strategist_node
-from acra.models import RetentionOffer
+from acra.agent.strategist import create_strategist_node, STRATEGIST_TOOLS
 
 
-class TestStrategistPrompt:
-    def test_builds_prompt_with_profile_and_policies(self):
-        state = {
-            "customer_id": "CUST-001",
-            "customer_name": "Alice",
-            "customer_email": "alice@example.com",
-            "cancellation_reason": "Too expensive",
-            "customer_profile": {"tenure_months": 14, "plan_name": "Pro", "lifetime_value_usd": 686},
-            "playbook_policies": [
-                {"policy_id": "POL-001", "content": "Max 40% for 12-24mo tenure"},
-            ],
-            "proposed_offer": {},
-            "audit_approved": False,
-            "audit_feedback": "",
-            "iteration_count": 0,
-            "final_email": "",
-            "final_json": {},
-        }
-        prompt = build_strategist_prompt(state)
-        assert "CUST-001" in prompt or "14" in prompt
-        assert "Too expensive" in prompt
-        assert "POL-001" in prompt
-        assert "Max 40% for 12-24mo tenure" in prompt
-
-    def test_includes_previous_audit_feedback(self):
-        state = {
-            "customer_id": "CUST-001",
-            "customer_name": "",
-            "customer_email": "",
-            "cancellation_reason": "Too expensive",
-            "customer_profile": {"tenure_months": 3},
-            "playbook_policies": [],
-            "proposed_offer": {},
-            "audit_approved": False,
-            "audit_feedback": "Discount too high for 3-month tenure",
-            "iteration_count": 1,
-            "final_email": "",
-            "final_json": {},
-        }
-        prompt = build_strategist_prompt(state)
-        assert "REJECTED" in prompt
-        assert "Discount too high for 3-month tenure" in prompt
+class TestStrategistTools:
+    def test_tools_are_defined(self):
+        assert len(STRATEGIST_TOOLS) == 2
+        tool_names = {t.name for t in STRATEGIST_TOOLS}
+        assert "get_customer_profile" in tool_names
+        assert "search_retention_policies" in tool_names
 
 
 class TestStrategistNode:
     @patch("acra.agent.strategist.ChatOpenAI")
-    def test_returns_offer_in_state(self, mock_chat):
-        mock_offer = RetentionOffer(
-            discount_percent=30,
-            duration_months=6,
-            offer_type="discount",
-            justification="Within 12-24mo limit of 40%",
-            email_draft="Dear customer, we value you...",
-        )
+    def test_node_returns_tool_call_when_llm_requests_tool(self, mock_chat):
+        from langchain_core.messages import AIMessage
 
+        # Simulate the LLM requesting a tool call
         mock_llm = MagicMock()
-        mock_structured = MagicMock()
-        mock_structured.invoke.return_value = mock_offer
-        mock_llm.with_structured_output.return_value = mock_structured
+        mock_llm_with_tools = MagicMock()
+        mock_llm.bind_tools.return_value = mock_llm_with_tools
+        mock_llm_with_tools.invoke.return_value = AIMessage(
+            content="",
+            tool_calls=[{
+                "name": "get_customer_profile",
+                "args": {"customer_id": "CUST-001"},
+                "id": "call_1",
+            }],
+        )
         mock_chat.return_value = mock_llm
 
         state = {
+            "messages": [],
             "customer_id": "CUST-001",
-            "customer_name": "Alice",
-            "customer_email": "alice@example.com",
             "cancellation_reason": "Too expensive",
-            "customer_profile": {"tenure_months": 14, "plan_name": "Professional", "lifetime_value_usd": 686},
-            "playbook_policies": [
-                {"policy_id": "POL-001", "content": "Max 40% discount for 12-24 month tenure."},
-            ],
+            "customer_profile": {},
             "proposed_offer": {},
             "audit_approved": False,
             "audit_feedback": "",
             "iteration_count": 0,
             "final_email": "",
-            "final_json": {},
+            "final_result": {},
         }
 
         node = create_strategist_node()
         result = node(state)
 
-        assert "proposed_offer" in result
-        assert result["proposed_offer"]["discount_percent"] == 30
-        assert result["proposed_offer"]["offer_type"] == "discount"
-        assert "email_draft" in result["proposed_offer"]
+        assert "messages" in result
+        last_msg = result["messages"][-1]
+        assert hasattr(last_msg, "tool_calls")
+        assert len(last_msg.tool_calls) == 1
+
+    @patch("acra.agent.strategist.ChatOpenAI")
+    def test_node_returns_final_response_when_no_tool_calls(self, mock_chat):
+        from langchain_core.messages import AIMessage
+
+        mock_llm = MagicMock()
+        mock_llm_with_tools = MagicMock()
+        mock_llm.bind_tools.return_value = mock_llm_with_tools
+        mock_llm_with_tools.invoke.return_value = AIMessage(
+            content='{"discount_percent": 30, "duration_months": 6, '
+                    '"offer_type": "discount", "justification": "Within limits", '
+                    '"reasoning": "Test reasoning", "email_draft": "Dear Alice..."}',
+        )
+        mock_chat.return_value = mock_llm
+
+        state = {
+            "messages": [],
+            "customer_id": "CUST-001",
+            "cancellation_reason": "Too expensive",
+            "customer_profile": {},
+            "proposed_offer": {},
+            "audit_approved": False,
+            "audit_feedback": "",
+            "iteration_count": 0,
+            "final_email": "",
+            "final_result": {},
+        }
+
+        node = create_strategist_node()
+        result = node(state)
+
+        assert "messages" in result
+        last_msg = result["messages"][-1]
+        assert hasattr(last_msg, "content")
+        # Should not have tool calls
+        assert not (hasattr(last_msg, "tool_calls") and last_msg.tool_calls)
+
+    @patch("acra.agent.strategist.ChatOpenAI")
+    def test_node_prepends_system_message_on_first_call(self, mock_chat):
+        from langchain_core.messages import AIMessage, SystemMessage
+
+        captured_messages = []
+
+        mock_llm = MagicMock()
+        mock_llm_with_tools = MagicMock()
+        mock_llm.bind_tools.return_value = mock_llm_with_tools
+
+        def capture(messages):
+            captured_messages.extend(messages)
+            return AIMessage(content="final response")
+
+        mock_llm_with_tools.invoke.side_effect = capture
+        mock_chat.return_value = mock_llm
+
+        state = {
+            "messages": [],
+            "customer_id": "CUST-001",
+            "cancellation_reason": "Too expensive",
+            "customer_profile": {},
+            "proposed_offer": {},
+            "audit_approved": False,
+            "audit_feedback": "",
+            "iteration_count": 0,
+            "final_email": "",
+            "final_result": {},
+        }
+
+        node = create_strategist_node()
+        node(state)
+
+        # First message should be a SystemMessage
+        system_msgs = [m for m in captured_messages if isinstance(m, SystemMessage)]
+        assert len(system_msgs) >= 1

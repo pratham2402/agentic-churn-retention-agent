@@ -2,7 +2,13 @@
 
 import pytest
 from pydantic import ValidationError
-from acra.models import RetentionOffer, AuditResult, CustomerProfile, RetentionPayload
+from acra.models import (
+    RetentionOffer,
+    AuditResult,
+    CustomerProfile,
+    RetentionPayload,
+    PolicyCheckResult,
+)
 
 
 class TestRetentionOffer:
@@ -12,18 +18,21 @@ class TestRetentionOffer:
             duration_months=6,
             offer_type="discount",
             justification="Test justification",
+            reasoning="Chain of thought here",
             email_draft="Dear customer...",
         )
         assert offer.discount_percent == 30
         assert offer.duration_months == 6
+        assert offer.reasoning == "Chain of thought here"
 
-    def test_discount_bounds(self):
+    def test_discount_bounds_above_100(self):
         with pytest.raises(ValidationError):
             RetentionOffer(
                 discount_percent=150,
                 duration_months=6,
                 offer_type="discount",
                 justification="Test",
+                reasoning="Test",
                 email_draft="Test",
             )
 
@@ -34,8 +43,30 @@ class TestRetentionOffer:
                 duration_months=6,
                 offer_type="discount",
                 justification="Test",
+                reasoning="Test",
                 email_draft="Test",
             )
+
+    def test_duration_bounds(self):
+        with pytest.raises(ValidationError):
+            RetentionOffer(
+                discount_percent=10,
+                duration_months=15,
+                offer_type="discount",
+                justification="Test",
+                reasoning="Test",
+                email_draft="Test",
+            )
+
+    def test_reasoning_defaults_to_empty(self):
+        offer = RetentionOffer(
+            discount_percent=20,
+            duration_months=3,
+            offer_type="discount",
+            justification="Test",
+            email_draft="Test",
+        )
+        assert offer.reasoning == ""
 
 
 class TestAuditResult:
@@ -44,14 +75,14 @@ class TestAuditResult:
         assert result.approved is True
         assert result.policy_violations == []
 
-    def test_rejected_result(self):
+    def test_rejected_with_violations(self):
         result = AuditResult(
             approved=False,
             feedback="Violation found",
-            policy_violations=["POL-001"],
+            policy_violations=["POL-001", "POL-002"],
         )
         assert result.approved is False
-        assert "POL-001" in result.policy_violations
+        assert len(result.policy_violations) == 2
 
 
 class TestCustomerProfile:
@@ -93,6 +124,7 @@ class TestRetentionPayload:
             duration_months=3,
             offer_type="discount",
             justification="Within limits",
+            reasoning="Test reasoning",
             email_draft="Dear Alice...",
         )
         payload = RetentionPayload(
@@ -106,3 +138,15 @@ class TestRetentionPayload:
         )
         assert payload.audit_approved is True
         assert payload.final_offer.discount_percent == 20
+
+
+class TestPolicyCheckResult:
+    def test_passed_check(self):
+        result = PolicyCheckResult(
+            policy_id="POL-001",
+            policy_title="Maximum Discount",
+            passed=True,
+            checked_values={"discount": 30, "max_allowed": 40},
+        )
+        assert result.passed is True
+        assert result.violation_detail == ""
